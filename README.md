@@ -1,4 +1,4 @@
-#12. IAM Users & Groups Hands On
+# 12. IAM Users & Groups Hands On
 
 # AWS IAM Users & Groups - Complete Guide & Hands-On
 
