@@ -4911,3 +4911,683 @@ aws ec2 delete-placement-group \
 ```
 
 ---
+
+# 52. Elastic Network Interfaces (ENI) - Hands On
+
+# AWS Elastic Network Interfaces (ENI) - Complete Guide & Hands-On
+
+## 📚 What is an ENI?
+
+An **Elastic Network Interface (ENI)** is a **virtual network card** that you can attach to an EC2 instance in a VPC.
+
+---
+
+## 🔑 Key Concepts
+
+### ENI Components
+```
+┌─────────────────────────────────────────┐
+│           Elastic Network Interface      │
+│                                         │
+│  • Primary Private IPv4 Address         │
+│  • Secondary Private IPv4 Addresses     │
+│  • One Elastic IP per Private IP        │
+│  • One Public IPv4 Address              │
+│  • One or More IPv6 Addresses           │
+│  • Security Groups                      │
+│  • MAC Address                          │
+│  • Source/Destination Check Flag        │
+└─────────────────────────────────────────┘
+```
+
+### Types of Network Interfaces
+| Type | Description |
+|------|-------------|
+| **Primary ENI (eth0)** | Created automatically with EC2 |
+| **Secondary ENI** | Additional ENI you attach manually |
+| **EFA** | Elastic Fabric Adapter (HPC workloads) |
+| **ENA** | Elastic Network Adapter (high performance) |
+
+---
+
+## 🏗️ ENI Architecture
+
+```
+         VPC (10.0.0.0/16)
+              │
+    ┌─────────┴──────────┐
+    │    Subnet           │
+    │  (10.0.1.0/24)     │
+    │                     │
+    │  ┌───────────────┐  │
+    │  │   EC2         │  │
+    │  │  Instance     │  │
+    │  │               │  │
+    │  │ eth0 (Primary)│──┼── Security Group A
+    │  │ 10.0.1.10     │  │   Public IP / EIP
+    │  │               │  │
+    │  │ eth1(Secondary│──┼── Security Group B
+    │  │ 10.0.1.20     │  │   Different IP
+    │  └───────────────┘  │
+    └─────────────────────┘
+```
+
+---
+
+## 🎯 Use Cases
+
+```
+1. 🔀 Management Network Separation
+   - eth0 → Application traffic
+   - eth1 → Admin/Management traffic
+
+2. 🔄 High Availability / Failover
+   - Move ENI from failed instance to standby
+
+3. 🛡️ Dual-homed Instances
+   - Connect to multiple subnets
+
+4. 📜 Licensing (MAC-based)
+   - Keep same MAC address across instances
+
+5. 🔧 Network Appliances
+   - Firewalls, NAT, Load Balancers
+```
+
+---
+
+## 🛠️ HANDS-ON PRACTICE
+
+### Lab 1: Create and Explore ENI
+
+#### Step 1: Launch an EC2 Instance
+```bash
+# Go to AWS Console
+EC2 → Instances → Launch Instance
+
+Name: ENI-Test-Instance
+AMI: Amazon Linux 2023
+Instance Type: t2.micro
+Key Pair: Create or use existing
+VPC: Default VPC
+Subnet: us-east-1a (note this subnet!)
+Security Group: Allow SSH (port 22)
+```
+
+#### Step 2: View Default ENI
+```bash
+# After launch, go to:
+EC2 → Instances → Select Instance → Networking Tab
+
+# You will see:
+- Network Interface: eni-xxxxxxxxx
+- Private IP: 172.31.x.x
+- Public IP: assigned automatically
+- Subnet ID
+- Security Groups
+```
+
+---
+
+### Lab 2: Create a Secondary ENI
+
+#### Step 2a: Create New ENI
+```bash
+# Go to:
+EC2 → Network & Security → Network Interfaces → Create Network Interface
+
+Settings:
+├── Description: "Secondary-ENI-Lab"
+├── Subnet: SAME subnet as your EC2 instance ⚠️
+├── Private IP: Leave blank (auto-assign) or enter 172.31.x.x
+├── Security Groups: Select same or different SG
+└── Click: Create
+```
+
+#### Step 2b: Attach ENI to Instance
+```bash
+# Select your new ENI → Actions → Attach
+
+Select Instance: ENI-Test-Instance
+Click: Attach
+```
+
+#### Step 2c: Verify inside EC2
+```bash
+# SSH into your instance
+ssh -i your-key.pem ec2-user@<public-ip>
+
+# Check network interfaces
+ip addr show
+# OR
+ifconfig
+
+# You should see:
+# eth0 - Primary ENI
+# eth1 - Secondary ENI (might need config)
+
+# Check routing
+ip route show
+
+# See both interfaces
+cat /proc/net/if_inet6
+```
+
+---
+
+### Lab 3: Configure Secondary ENI (Amazon Linux)
+
+```bash
+# SSH into instance
+ssh -i your-key.pem ec2-user@<public-ip>
+
+# Check interfaces
+ip link show
+
+# Bring up eth1
+sudo ip link set eth1 up
+
+# Check if IP was assigned
+ip addr show eth1
+
+# If no IP, assign manually (DHCP)
+sudo dhclient eth1
+
+# Verify
+ip addr show
+# eth1 should now have an IP
+
+# Test connectivity from eth1
+ping -I eth1 8.8.8.8
+```
+
+---
+
+### Lab 4: Detach and Move ENI (Failover Demo)
+
+```bash
+# This simulates High Availability!
+
+Step 1: Launch Second EC2 Instance
+├── Name: ENI-Standby-Instance  
+├── Same Subnet as first instance
+└── Same settings
+
+Step 2: Note the Secondary ENI from Lab 2
+
+Step 3: Detach ENI from Instance 1
+EC2 → Network Interfaces → Select ENI
+Actions → Detach
+☑️ Force Detach if needed
+
+Step 4: Attach ENI to Instance 2
+Select same ENI → Actions → Attach
+Select: ENI-Standby-Instance
+
+# The IP address MOVES to new instance!
+# This is how failover works!
+```
+
+---
+
+### Lab 5: Elastic IP with ENI
+
+```bash
+# Step 1: Allocate Elastic IP
+EC2 → Elastic IPs → Allocate Elastic IP Address
+Click: Allocate
+
+# Step 2: Associate with ENI
+Actions → Associate Elastic IP Address
+Resource Type: Network Interface
+Network Interface: Select your Secondary ENI
+Private IP: Select private IP
+Click: Associate
+
+# Step 3: Verify
+EC2 → Network Interfaces → Select ENI
+Check: Elastic IP shown in details
+
+# Step 4: Test
+# Now this EIP follows wherever the ENI goes!
+```
+
+---
+
+### Lab 6: CLI Commands for ENI
+
+```bash
+# Install AWS CLI and configure
+aws configure
+
+# List all ENIs
+aws ec2 describe-network-interfaces
+
+# List ENIs in specific VPC
+aws ec2 describe-network-interfaces \
+  --filters "Name=vpc-id,Values=vpc-xxxxxxxx"
+
+# Create ENI via CLI
+aws ec2 create-network-interface \
+  --subnet-id subnet-xxxxxxxx \
+  --description "My-CLI-ENI" \
+  --groups sg-xxxxxxxx
+
+# Attach ENI to instance
+aws ec2 attach-network-interface \
+  --network-interface-id eni-xxxxxxxx \
+  --instance-id i-xxxxxxxx \
+  --device-index 1
+
+# Detach ENI
+aws ec2 detach-network-interface \
+  --attachment-id eni-attach-xxxxxxxx
+
+# Delete ENI (must be detached first)
+aws ec2 delete-network-interface \
+  --network-interface-id eni-xxxxxxxx
+
+# Describe specific ENI
+aws ec2 describe-network-interfaces \
+  --network-interface-ids eni-xxxxxxxx
+```
+
+---
+
+### Lab 7: Source/Destination Check
+
+```bash
+# By default, AWS checks if traffic source/destination
+# matches the instance. For NAT/VPN, disable this!
+
+# Disable via Console:
+EC2 → Network Interfaces → Select ENI
+Actions → Change Source/Dest Check
+Uncheck: Enable
+Save
+
+# Disable via CLI:
+aws ec2 modify-network-interface-attribute \
+  --network-interface-id eni-xxxxxxxx \
+  --no-source-dest-check
+
+# Enable via CLI:
+aws ec2 modify-network-interface-attribute \
+  --network-interface-id eni-xxxxxxxx \
+  --source-dest-check
+```
+
+---
+
+## 📊 ENI Limits Per Instance Type
+
+```
+Instance Type    │  Max ENIs  │  Max IPs per ENI
+─────────────────┼────────────┼─────────────────
+t2.micro         │     2      │       2
+t2.small         │     3      │       4
+t2.medium        │     3      │       6
+t3.medium        │     3      │       6
+m5.large         │     3      │      10
+m5.xlarge        │     4      │      15
+c5.xlarge        │     4      │      15
+r5.large         │     3      │      10
+```
+
+---
+
+## 🔒 Security Group with ENI
+
+```bash
+# Each ENI can have different Security Groups!
+
+ENI eth0 (Primary):
+└── Security Group: Allow HTTP (80), HTTPS (443)
+
+ENI eth1 (Secondary):  
+└── Security Group: Allow SSH (22) from Admin IP only
+
+# This provides network traffic separation!
+
+# Add Security Group to ENI:
+EC2 → Network Interfaces → Select ENI
+Actions → Change Security Groups
+Add/Remove Security Groups
+```
+
+---
+
+## 🧹 Cleanup Commands
+
+```bash
+# IMPORTANT: Clean up to avoid charges!
+
+# 1. Terminate EC2 Instances
+EC2 → Instances → Select → Terminate
+
+# 2. Release Elastic IPs (if not associated)
+EC2 → Elastic IPs → Release
+
+# 3. Delete Custom ENIs
+EC2 → Network Interfaces → Delete (if not auto-deleted)
+
+# Via CLI:
+aws ec2 terminate-instances --instance-ids i-xxxxxxxx
+aws ec2 release-address --allocation-id eipalloc-xxxxxxxx
+aws ec2 delete-network-interface --network-interface-id eni-xxxxxxxx
+```
+
+---
+
+## 📝 Quick Summary
+
+```
+┌────────────────────────────────────────────┐
+│              ENI Key Points                 │
+├────────────────────────────────────────────┤
+│ ✅ Virtual network card in VPC             │
+│ ✅ Bound to specific Availability Zone     │
+│ ✅ Can have multiple private IPs           │
+│ ✅ Can attach/detach from instances        │
+│ ✅ Retains attributes when moved           │
+│ ✅ Each has own Security Groups            │
+│ ✅ Useful for HA & failover               │
+│ ✅ Used for network appliances            │
+│ ❌ Cannot move across AZs                 │
+│ ❌ Cannot move across VPCs                │
+└────────────────────────────────────────────┘
+```
+
+---
+
+## 🎓 Practice Checklist
+
+- [ ] Create EC2 and view primary ENI
+- [ ] Create secondary ENI manually
+- [ ] Attach secondary ENI to instance
+- [ ] SSH and verify eth0 & eth1
+- [ ] Assign Elastic IP to ENI
+- [ ] Move ENI between instances
+- [ ] Disable Source/Destination Check
+- [ ] Use CLI to manage ENIs
+- [ ] Clean up all resources
+
+---
+
+**💡 Pro Tips:**
+- ENI stays in **same AZ** always
+- Primary ENI **cannot be detached**
+- ENI keeps its **attributes when moved**
+- Use **different SGs per ENI** for security isolation
+
+---
+
+# 55. EC2 Hibernate - Hands On
+
+# AWS EC2 Hibernate - Complete Guide + Hands-On
+
+## 📚 What is EC2 Hibernate?
+
+**Hibernate** saves the **RAM contents** to the **EBS root volume**, so when you start the instance again, it resumes exactly where it left off — **faster than a normal start**.
+
+---
+
+## 🔄 Normal Stop vs Hibernate vs Terminate
+
+| Action | RAM | EBS Root Volume | Boot Time |
+|--------|-----|-----------------|-----------|
+| **Stop** | Cleared | Persisted | Fresh boot (slow) |
+| **Hibernate** | Saved to EBS | Persisted | Fast resume |
+| **Terminate** | Cleared | Deleted (default) | N/A |
+
+---
+
+## 🏗️ How Hibernate Works
+
+```
+Instance Running
+     │
+     ▼
+User triggers Hibernate
+     │
+     ▼
+RAM contents dumped → EBS Root Volume (encrypted)
+     │
+     ▼
+Instance STOPS (billing pauses for compute)
+     │
+     ▼
+User starts instance again
+     │
+     ▼
+RAM restored from EBS → Instance resumes instantly
+```
+
+---
+
+## ✅ Requirements for Hibernate
+
+| Requirement | Details |
+|-------------|---------|
+| **OS Support** | Amazon Linux 2, Ubuntu, Windows |
+| **RAM Size** | Must be **less than 150 GB** |
+| **Root Volume** | Must be **EBS** (not instance store) |
+| **Root Volume Size** | Must be large enough to store RAM |
+| **Encryption** | EBS root volume **MUST be encrypted** |
+| **Instance Types** | Most types EXCEPT bare metal |
+| **Max Hibernate Duration** | **60 days** |
+
+---
+
+## 🛠️ HANDS-ON PRACTICE
+
+### Step 1: Launch EC2 Instance with Hibernate Support
+
+```
+AWS Console → EC2 → Launch Instance
+```
+
+**Configuration:**
+```
+Name: hibernate-test
+AMI: Amazon Linux 2 (HVM)
+Instance Type: t2.micro (or t3.micro)
+```
+
+---
+
+### Step 2: Configure Storage (MUST be Encrypted)
+
+```
+Storage Settings:
+├── Volume Type: gp2 or gp3
+├── Size: 20 GB (must be > RAM size)
+├── ✅ Encrypted: YES  ← MANDATORY
+└── KMS Key: aws/ebs (default)
+```
+
+> ⚠️ **If not encrypted → Hibernate option won't appear!**
+
+---
+
+### Step 3: Enable Hibernate in Advanced Details
+
+```
+Advanced Details → Stop - Hibernate behavior
+└── Select: ✅ Enable
+```
+
+---
+
+### Step 4: Launch the Instance
+
+```
+→ Add Key Pair (or create new)
+→ Security Group: Allow SSH (port 22)
+→ Launch Instance
+```
+
+---
+
+### Step 5: Connect and Check Uptime
+
+```bash
+# Connect via SSH
+ssh -i your-key.pem ec2-user@<public-ip>
+
+# Check uptime (note the time)
+uptime
+
+# Output example:
+# 10:30:22 up 2 min, 1 user, load average: 0.00
+```
+
+---
+
+### Step 6: Hibernate the Instance
+
+```
+AWS Console:
+→ Select your instance
+→ Instance State → Hibernate
+→ Confirm
+```
+
+**Watch the states:**
+```
+Running → Stopping → Stopped
+(This takes 30-60 seconds)
+```
+
+---
+
+### Step 7: Start the Instance Again
+
+```
+→ Select instance
+→ Instance State → Start
+→ Wait for Running state
+```
+
+---
+
+### Step 8: Verify Hibernate Worked (Check Uptime)
+
+```bash
+# Connect again via SSH
+ssh -i your-key.pem ec2-user@<public-ip>
+
+# Check uptime again
+uptime
+
+# Output example:
+# 10:45:00 up 17 min, 1 user, load average: 0.00
+#           ^^^^^^^^
+#    Uptime CONTINUED from before hibernate!
+#    (Not reset to 0 like normal stop/start)
+```
+
+> ✅ **If uptime continued → Hibernate worked successfully!**
+
+---
+
+## 🔍 What to Verify After Hibernate
+
+```bash
+# 1. Check uptime (should continue from before)
+uptime
+
+# 2. Check running processes (still running)
+ps aux
+
+# 3. Check system logs
+sudo dmesg | tail -20
+
+# 4. You'll see hibernate/resume messages in logs
+sudo cat /var/log/messages | grep -i hibernate
+```
+
+---
+
+## 💡 Real-World Use Cases
+
+```
+1. Long-running processes
+   └── ML training jobs, batch processing
+
+2. Development environments
+   └── Resume IDE, running servers instantly
+
+3. Cost saving
+   └── Hibernate overnight, resume next morning
+      (No compute cost during hibernation)
+
+4. Quick environment snapshots
+   └── Save exact state before risky changes
+```
+
+---
+
+## 💰 Billing During Hibernate
+
+```
+✅ NO charge for → EC2 compute (instance hours)
+✅ NO charge for → Elastic IP (associated with instance)
+❌ YES charge for → EBS storage (root volume)
+❌ YES charge for → Other EBS volumes attached
+```
+
+---
+
+## ❌ Common Mistakes & Fixes
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Hibernate option grayed out | EBS not encrypted | Enable encryption on root volume |
+| Can't hibernate | Instance type not supported | Use supported instance type |
+| Hibernate fails | RAM > 150 GB | Use smaller instance |
+| Root volume too small | RAM dump won't fit | Increase root volume size |
+
+---
+
+## 📝 Quick Summary
+
+```
+EC2 Hibernate = "Laptop Sleep Mode"
+
+Key Points:
+├── RAM saved to EBS root volume
+├── EBS MUST be encrypted
+├── RAM must be < 150 GB
+├── Max 60 days hibernation
+├── Faster startup than stop/start
+├── No compute charges while hibernated
+└── Uptime clock continues after resume
+```
+
+---
+
+## 🧹 Cleanup (Important!)
+
+```
+After practice:
+→ Select instance
+→ Instance State → Terminate
+→ This avoids EBS storage charges
+```
+
+---
+
+## 🎯 Practice Checklist
+
+```
+□ Launched instance with encrypted EBS
+□ Enabled hibernate in advanced settings
+□ Noted uptime before hibernate
+□ Successfully hibernated instance
+□ Restarted and verified uptime continued
+□ Checked instance was in "stopped" state during hibernate
+□ Terminated instance after practice
+```
+
+---
