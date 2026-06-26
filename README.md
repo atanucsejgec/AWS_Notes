@@ -6083,7 +6083,7 @@ xvdf     202:80   0   8G  0 disk  ← NEW restored volume
 ```bash
 # Mount the restored volume
 sudo mkdir /restored
-sudo mount /dev/xvdf /restored
+sudo mount -o nouuid /dev/nvme1n1p1 /restored // Can be change
 
 # Check the data
 ls /restored/data/
