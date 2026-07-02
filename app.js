@@ -583,7 +583,7 @@ async function loadChapter(index) {
 
     // Mark as read
     readChapters.add(ch.num);
-    localStorage.setItem('awsNotesRead', JSON.stringify([...readChapters]));
+    // localStorage.setItem('awsNotesRead', JSON.stringify([...readChapters]));
     updateProgress();
 
     // Scroll to top
