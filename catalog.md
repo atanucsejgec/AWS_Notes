@@ -21,3 +21,9 @@
 | 57 EBS Hands On | [View Chapter](chapters/57_EBS_Hands_On.md) |
 | 59. EBS Snapshots - Hands On | [View Chapter](chapters/59_EBS_Snapshots_Hands_On.md) |
 | 61. AMI Hands On | [View Chapter](chapters/61_AMI_Hands_On.md) |
+| 67. Amazon EFS - Hands On | [View Chapter](chapters/67_Amazon_EFS_Hands_On.md) |
+| 73. Application Load Balancer (ALB) - Hands On | [View Chapter](chapters/73_Application_Load_Balancer_(ALB)_Hands_On.md) |
+| 74. ALB Listener Rules - Hands On | [View Chapter](chapters/74_ALB_Listener_Rules_Hands_On.md) |
+| 76. Network Load Balancer (NLB) - Hands On | [View Chapter](chapters/76_Network_Load_Balancer_(NLB)_Hands_On.md) |
+| 78. Elastic Load Balancer - Sticky Sessions | [View Chapter](chapters/78_Elastic_Load_Balancer_-_Sticky_Sessions.md) |
+| 79. Elastic Load Balancer - Cross Zone Load Balancing | [View Chapter](chapters/79_Elastic_Load_Balancer_-_Cross_Zone_Load_Balancing.md) |
