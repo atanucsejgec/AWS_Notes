@@ -27,3 +27,9 @@
 | 76. Network Load Balancer (NLB) - Hands On | [View Chapter](chapters/76_Network_Load_Balancer_(NLB)_Hands_On.md) |
 | 78. Elastic Load Balancer - Sticky Sessions | [View Chapter](chapters/78_Elastic_Load_Balancer_-_Sticky_Sessions.md) |
 | 79. Elastic Load Balancer - Cross Zone Load Balancing | [View Chapter](chapters/79_Elastic_Load_Balancer_-_Cross_Zone_Load_Balancing.md) |
+| 84. Auto Scaling Groups - Hands On | [View Chapter](chapters/84_Auto_Scaling_Groups_Hands_On.md) |
+| 86. Auto Scaling Groups - Scaling Policies - Hands On | [View Chapter](chapters/86_Auto_Scaling_Groups_-_Scaling_Policies_Hands_On.md) |
+| 89. Amazon RDS - Hands On | [View Chapter](chapters/89_Amazon_RDS_-_Hands_On.md) |
+| 93. Amazon Aurora - Hands-On | [View Chapter](chapters/93_Amazon_Aurora_-_Hands_On.md) |
+| 99. ElastiCache - Hands-On | [View Chapter](chapters/99_ElastiCache_-_Hands_On.md) |
+
